@@ -29,7 +29,7 @@ db.once("open", (err) => {
 });
 
 // Middleware
-app(cors())
+app.use(cors())
 app.use(express.json());
 
 // Routes
