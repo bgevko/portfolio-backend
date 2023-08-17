@@ -5,6 +5,7 @@ const express = require('express');
 const PORT = process.env.PORT;
 const app = express();
 const mongoose = require('mongoose');
+const cors = require('cors');
 
 // Import routes
 const blogRoutes = require('./controllers/blog-controller.js');
@@ -28,6 +29,7 @@ db.once("open", (err) => {
 });
 
 // Middleware
+app(cors())
 app.use(express.json());
 
 // Routes
