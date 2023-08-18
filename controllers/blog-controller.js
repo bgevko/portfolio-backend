@@ -92,7 +92,7 @@ router.get('/blog/:_id', (req, res) => {
 });
 
 
-// DELETE Controller *******************************
+// DELETE Controller ******************************
 router.delete('/blog/:_id', (req, res) => {
     blog.deleteBlogById(req.params._id)
         .then(deletedCount => {
