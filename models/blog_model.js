@@ -24,7 +24,7 @@ const createBlog = async (title, author, date, preview, content, tags = []) => {
     if (readTime === 0) readTime = 1;
 
     // Search through the db for the title, and if it exists, set the unique_id number to 1 + the number of instances that exist.
-    // If it doesn't exist, set the unique_id to 1.
+
     const blogTitles = await blogs.find({title: title});
     const urlIdentifier = blogTitles.length + 1;
     let url = title.replace(/\s+/g, '-').toLowerCase();
