@@ -10,7 +10,8 @@ const blogSchema = mongoose.Schema({
     publishDate:    { type: Date,   required: true, default: Date.now },
     editDate:       { type: Date,   required: false },
     readTime:       { type: Number, default: 1},
-    tags:           { type: [String], required: false, set: tags => [...new Set(tags)] }
+    tags:           { type: [String], required: false, set: tags => [...new Set(tags)] },
+    relativePath:   { type: String, required: true },
 });
 
 
@@ -21,6 +22,15 @@ const createBlog = async (title, author, date, preview, content, tags = []) => {
     const wordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(wordCount / 200);
     if (readTime === 0) readTime = 1;
+
+    // Search through the db for the title, and if it exists, set the unique_id number to 1 + the number of instances that exist.
+    // If it doesn't exist, set the unique_id to 1.
+    const blogTitles = await blogs.find({title: title});
+    const urlIdentifier = blogTitles.length + 1;
+    let url = title.replace(/\s+/g, '-').toLowerCase();
+    if (urlIdentifier > 1) {
+        url += `-${urlIdentifier}`;
+    }
     
     const blog = new blogs({ 
         title: title, 
@@ -29,7 +39,8 @@ const createBlog = async (title, author, date, preview, content, tags = []) => {
         preview: preview,
         content: content,
         readTime: readTime,
-        tags: tags
+        tags: tags,
+        relativePath: url
     });
     return blog.save();
 }
