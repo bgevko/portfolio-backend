@@ -15,7 +15,7 @@ jobs:
       - name: Get changed files
         id: getfile
         run: |
-          echo "::set-output name=modified::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+          echo "modified=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_OUTPUT
       - name: Check for changes in dependencies
         id: filter
         uses: dorny/paths-filter@v2
@@ -41,7 +41,11 @@ jobs:
             cd /home/nodejs/portfolio-backend
             git pull origin main
             npm install
-            pm2 restart app.js
+            if pm2 describe app.js > /dev/null; then
+              pm2 restart app.js
+            else
+              pm2 start app.js
+            fi
 
   deploy_without_npm_install:
     needs: check_changes
@@ -58,4 +62,8 @@ jobs:
           script: |
             cd /home/nodejs/portfolio-backend
             git pull origin main
-            pm2 restart app.js
+            if pm2 describe app.js > /dev/null; then
+              pm2 restart app.js
+            else
+              pm2 start app.js
+            fi
