@@ -17,7 +17,7 @@ const blogSchema = mongoose.Schema({
 
 const blogs = mongoose.model('Blog', blogSchema);
 
-// CREATE blog model *****************************************
+// CREATE blog model ******************************************
 const createBlog = async (title, author, date, preview, content, tags = []) => {
     const wordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(wordCount / 200);
