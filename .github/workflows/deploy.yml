@@ -39,7 +39,8 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             cd /home/nodejs/portfolio-backend
-            git pull origin main
+            git stash
+            git pull origin main || (git stash && git pull origin main && git stash drop)
             npm install
             if pm2 describe app.js > /dev/null; then
               pm2 restart app.js
@@ -61,7 +62,8 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             cd /home/nodejs/portfolio-backend
-            git pull origin main
+            git stash
+            git pull origin main || (git stash && git pull origin main && git stash drop)
             if pm2 describe app.js > /dev/null; then
               pm2 restart app.js
             else
