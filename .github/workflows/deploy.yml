@@ -42,10 +42,10 @@ jobs:
             git stash
             git pull origin main || (git stash && git pull origin main && git stash drop)
             npm install
-            if pm2 describe app.js > /dev/null; then
-              pm2 restart app.js
+            if pm2 describe app | grep -q 'status.*online'; then
+              pm2 restart app
             else
-              pm2 start app.js
+              pm2 start app
             fi
 
   deploy_without_npm_install:
@@ -64,8 +64,8 @@ jobs:
             cd /home/nodejs/portfolio-backend
             git stash
             git pull origin main || (git stash && git pull origin main && git stash drop)
-            if pm2 describe app.js > /dev/null; then
-              pm2 restart app.js
+            if pm2 describe app | grep -q 'status.*online'; then
+              pm2 restart app
             else
-              pm2 start app.js
+              pm2 start app
             fi
