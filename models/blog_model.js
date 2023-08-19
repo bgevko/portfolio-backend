@@ -51,6 +51,13 @@ const updateBlog = async (_id, title, author, publishDate, preview, content, tag
     let readTime = Math.ceil(newWordCount / 200);
     if (readTime === 0) readTime = 1;
 
+    const blogTitles = await blogs.find({title: title});
+    const urlIdentifier = blogTitles.length + 1;
+    let url = title.replace(/\s+/g, '-').toLowerCase();
+    if (urlIdentifier > 1) {
+        url += `-${urlIdentifier}`;
+    }
+
     const timeNow = Date.now();
     const result = await blogs.replaceOne({_id: _id }, {
         title: title,
@@ -60,7 +67,8 @@ const updateBlog = async (_id, title, author, publishDate, preview, content, tag
         content: content,
         readTime: readTime,
         editDate: timeNow,
-        tags: tags
+        tags: tags,
+        relativePath: url
     });
     return { 
         _id: _id, 
@@ -71,7 +79,8 @@ const updateBlog = async (_id, title, author, publishDate, preview, content, tag
         content: content,
         readTime: readTime,
         editDate: new Date(timeNow).toDateString(),
-        tags: tags 
+        tags: tags,
+        relativePath: url
     }
 }
 

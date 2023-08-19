@@ -63,6 +63,7 @@ router.get('/blog', (req, res) => {
         .then(post => { 
             if (post !== null) {
                 console.log(post)
+                console.log("this should show up on the server")
                 res.json(post);
             } else {
                 res.status(404).json({error: 'No blogs found.' });
