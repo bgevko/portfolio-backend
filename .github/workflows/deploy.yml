@@ -1,18 +1,61 @@
-name: TestConnection
-
-on: [push]
+name: Deploy to DigitalOcean
+on:
+  push:
+    branches:
+      - main
 
 jobs:
-  test-connection:
-
+  check_changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      deps_changed: ${{ steps.filter.outputs.deps_changed }}
     steps:
-    - name: Executing remote command
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        port: ${{ secrets.PORT }}
-        key: ${{ secrets.KEY}}
-        script: echo "Connection successful" > connection_proof.txt
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Get changed files
+        id: getfile
+        run: |
+          echo "::set-output name=modified::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+      - name: Check for changes in dependencies
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            deps_changed:
+              - added|modified: 'package.json'
+              - diff: 'dependencies|devDependencies'
+
+  deploy:
+    needs: check_changes
+    if: needs.check_changes.outputs.deps_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to DigitalOcean and run npm install
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.KEY }}
+          script: |
+            cd /home/nodejs/portfolio-backend
+            git pull origin main
+            npm install
+            pm2 restart app.js
+
+  deploy_without_npm_install:
+    needs: check_changes
+    if: needs.check_changes.outputs.deps_changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to DigitalOcean without running npm install
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.KEY }}
+          script: |
+            cd /home/nodejs/portfolio-backend
+            git pull origin main
+            pm2 restart app.js
