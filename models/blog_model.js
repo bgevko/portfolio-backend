@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // SCHEMA for the blog model.
-const blogSchema = mongoose.Schema({
+const articleSchema = mongoose.Schema({
 	title:          { type: String, required: true },
     author:         { type: String, required: true },
     preview:        { type: String, required: true},
@@ -15,24 +15,24 @@ const blogSchema = mongoose.Schema({
 });
 
 
-const blogs = mongoose.model('Blog', blogSchema);
+const articles = mongoose.model('Article', articleSchema);
 
-// CREATE blog model ****************************************
-const createBlog = async (title, author, date, preview, content, tags = []) => {
+// CREATE 
+const addArticle = async (title, author, date, preview, content, tags = []) => {
     const wordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(wordCount / 200);
     if (readTime === 0) readTime = 1;
 
     // Search through the db for the title, and if it exists, set the unique_id number to 1 + the number of instances that exist.
 
-    const blogTitles = await blogs.find({title: title});
-    const urlIdentifier = blogTitles.length + 1;
+    const titles = await articles.find({title: title});
+    const urlIdentifier = titles.length + 1;
     let url = title.replace(/\s+/g, '-').toLowerCase();
     if (urlIdentifier > 1) {
         url += `-${urlIdentifier}`;
     }
     
-    const blog = new blogs({ 
+    const article = new articles({ 
         title: title, 
         author: author, 
         publishDate: date || Date.now(),
@@ -40,26 +40,26 @@ const createBlog = async (title, author, date, preview, content, tags = []) => {
         content: content,
         readTime: readTime,
         tags: tags,
-        relativePath: url
+        relativePath: url,
     });
-    return blog.save();
+    return article.save();
 }
 
-// UPDATE model *****************************************************
-const updateBlog = async (_id, title, author, publishDate, preview, content, tags=[]) => {
+// UPDATE 
+const updateArticle = async (_id, title, author, publishDate, preview, content, tags=[]) => {
     const newWordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(newWordCount / 200);
     if (readTime === 0) readTime = 1;
 
-    const blogTitles = await blogs.find({title: title});
-    const urlIdentifier = blogTitles.length + 1;
+    const titles = await articles.find({title: title});
+    const urlIdentifier = titles.length + 1;
     let url = title.replace(/\s+/g, '-').toLowerCase();
     if (urlIdentifier > 1) {
         url += `-${urlIdentifier}`;
     }
 
     const timeNow = Date.now();
-    const result = await blogs.replaceOne({_id: _id }, {
+    const result = await articles.replaceOne({_id: _id }, {
         title: title,
         author: author,
         publishDate: publishDate || timeNow,
@@ -84,33 +84,64 @@ const updateBlog = async (_id, title, author, publishDate, preview, content, tag
     }
 }
 
-// RETRIEVE blog *****************************************
-const retrieveBlogs = async () => {
-    const query = blogs.find();
+// GET ALL
+const getArticles = async () => {
+    const query = articles.find();
     
     // sort by date descending
     query.sort({publishDate: 'desc'});
     return query.exec();
 }
 
-// RETRIEVE by blog ID
-const retrieveBlogByID = async (_id) => {
-    const query = blogs.findById({_id: _id});
+// Get by ID
+const getArticleById = async (_id) => {
+    const query = articles.findById({_id: _id});
     return query.exec();
 }
 
-// DELETE blog based on _id  *****************************************
-const deleteBlogById = async (_id) => {
-    const result = await blogs.deleteOne({_id: _id});
+// Get by relative path
+const getArticleByPath = async (path) => {
+    const query = articles.findOne({relativePath: path});
+    return query.exec();
+}
+
+// Get latest
+const getLatestArticle = async () => {
+    const query = articles.find();
+    query.sort({publishDate: 'desc'});
+    query.limit(1);
+    const result = await query.exec();
+    if (result.length > 0) {
+        return result[0];
+    }
+    return null;
+}
+
+// Get random
+const getRandomArticle = async (exclude) => {
+    const result = await articles.aggregate([
+        { $match: { _id: { $ne: exclude } } },
+        { $sample: { size: 1 } }
+    ])
+
+    if (result.length > 0) {
+        return result[0];
+    }
+    return null;
+}
+
+// DELETE 
+const deleteArticleById = async (_id) => {
+    const result = await articles.deleteOne({_id: _id});
     return result.deletedCount;
 };
 
-// DELETE ALL blogs (for testing) *****************************************
-const deleteAllBlogs = async () => {
-    const result = await blogs.deleteMany();
+// DELETE ALL
+const deleteAllArticles = async () => {
+    const result = await articles.deleteMany();
     return result.deletedCount;
 };
 
 
 // EXPORT the variables for use in the controller file.
-module.exports = { createBlog, retrieveBlogs, retrieveBlogByID, updateBlog, deleteBlogById, deleteAllBlogs }
+module.exports = { addArticle, updateArticle, getArticles, getArticleById, getArticleByPath, getLatestArticle, getRandomArticle, deleteArticleById, deleteAllArticles}

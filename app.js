@@ -11,6 +11,7 @@ const cors = require('cors');
 const blogRoutes = require('./controllers/blog-controller.js');
 const contactRoutes = require('./controllers/contact-controller.js');
 const orderRoutes = require('./controllers/order-controller.js');
+const loginRoutes = require('./controllers/login-controller.js');
 
 // Connect to the database.
 mongoose.connect(
@@ -36,6 +37,7 @@ app.use(express.json());
 app.use(blogRoutes);
 app.use(contactRoutes);
 app.use(orderRoutes);
+app.use(loginRoutes);
 
 // 404 error handler
 app.use((req, res) => {
