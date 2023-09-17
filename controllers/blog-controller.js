@@ -17,31 +17,12 @@ const getTokenFrom = (request) => {
 
 // CREATE ARTICLE
 router.post ('/blog', sanitizeBlogRequest, validateBlogRequest, async(req,res) => {
-    // let decodedToken;
-    // try {
-    //     decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
-    // } catch (error) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
     
-    // if (!decodedToken.id) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
-
-    // const isAdmin = await User.isUserAdmin(decodedToken.id);
-    // if (!isAdmin) {
-    //     return res.status(401).json({ error: 'Only authorized users can create blog posts.' });
-    // }
-    
-    // Convert date to an object compatible with MongoDB date format
-    const date = new Date(req.body.publishDate);
-    const todayDate = new Date();
-    date.setHours(todayDate.getHours(), todayDate.getMinutes(), todayDate.getSeconds());
     
     blog.addArticle(
         req.body.title, 
-        req.body.author,
-        date,
+        req.body.publishDate,
+        req.body.editDate,
         req.body.preview,
         req.body.content,
         req.body.tags
@@ -56,29 +37,13 @@ router.post ('/blog', sanitizeBlogRequest, validateBlogRequest, async(req,res) =
 });
 
 // UPDATE
-
-router.put('/blog/:_id', sanitizeBlogRequest, validateBlogRequest, async(req, res) => {
-    // let decodedToken;
-    // try {
-    //     decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
-    // } catch (error) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
-
-    // if (!decodedToken.id) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
-
-    // const isAdmin = await User.isUserAdmin(decodedToken.id);
-    // if (!isAdmin) {
-    //     return res.status(401).json({ error: 'Only authorized users can update blog posts.' });
-    // }
-
+router.put('/blog/:encoded_title', sanitizeBlogRequest, validateBlogRequest, async(req, res) => {
+    const decodedTitle = decodeURIComponent(req.params.encoded_title);
     blog.updateArticle(
-        req.params._id, 
+        decodedTitle,
         req.body.title, 
-        req.body.author,
         req.body.publishDate,
+        req.body.editDate,
         req.body.preview,
         req.body.content,
         req.body.tags
@@ -178,29 +143,14 @@ router.get('/blog', (req, res) => {
 
 
 // DELETE 
-router.delete('/blog/:_id', async (req, res) => {
-    // let decodedToken;
-    // try {
-    //     decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET);
-    // } catch (error) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
-
-    // if (!decodedToken.id) {
-    //     return res.status(401).json({ error: 'Invalid credentials.' });
-    // }
-
-    // const isAdmin = await User.isUserAdmin(decodedToken.id);
-    // if (!isAdmin) {
-    //     return res.status(401).json({ error: 'Only authorized users can delete blog posts.' });
-    // }
-
-    blog.deleteArticleById(req.params._id)
+router.delete('/blog/:decoded_title', async (req, res) => {
+    const decodedTitle = decodeURIComponent(req.params.decoded_title);
+    blog.deleteArticleTitle(decodedTitle)
         .then(deletedCount => {
             if (deletedCount === 1) {
                 return res.status(204).send({ success: `Successfully deleted blog with id ${req.params._id}.` });
             } else {
-                return res.status(404).json({ error: `Could not delete blog with id ${req.params._id}, blog not found.` });
+                return res.status(404).json({ error: `Could not delete blog. Db issue.` });
             }
         })
         .catch(error => {
@@ -226,35 +176,13 @@ router.delete('/all_articles_test_only', (req, res) => {
 });
 
 function validateBlogRequest(req, res, next) {
-    const requiredFields = ['title', 'author', 'publishDate', 'preview', 'content', 'tags'];
+    const requiredFields = ['title', 'publishDate', 'editDate', 'preview', 'content', 'tags'];
     for (let i = 0; i < requiredFields.length; i++) {
         const field = requiredFields[i];
         if (!(field in req.body)) {
             return res.status(400).json({ error: `Request body is missing ${field}.` });
         }
     }
-
-    const isNotString = (field, errorMessage) => {
-        if (typeof req.body[field] !== 'string') {
-            return res.status(400).json({ error: errorMessage });
-        }
-    };
-
-    isNotString('title', 'Title must be a string.');
-    isNotString('author', 'Author must be a string.');
-    isNotString('publishDate', 'Publish date must be a string.');
-    isNotString('preview', 'Preview must be a string.');
-    isNotString('content', 'Content must be a string.');
-    isNotString('tags', 'Tags must be a string.');
-
-    // Date validtor from https://rgxdb.com/r/2V9BOC58
-    const dateRegex = /^(?:(?:(?:(?:(?:[1-9]\d)(?:0[48]|[2468][048]|[13579][26])|(?:(?:[2468][048]|[13579][26])00))(\/|-|\.)(?:0?2\1(?:29)))|(?:(?:[1-9]\d{3})(\/|-|\.)(?:(?:(?:0?[13578]|1[02])\2(?:31))|(?:(?:0?[13-9]|1[0-2])\2(?:29|30))|(?:(?:0?[1-9])|(?:1[0-2]))\2(?:0?[1-9]|1\d|2[0-8])))))$/
-    if (!dateRegex.test(req.body.publishDate)) {
-        return res.status(400).json({ error: 'Publish date must be a valid date in the format YYYY-MM-DD.' });
-    }
-
-    // convert publishDate to a date object
-    req.body.publishDate = new Date(req.body.publishDate);
 
     // Format tags to be capitalized and have no leading or trailing whitespace, and store them as an array
     let tags = req.body.tags.split(',').map(tag => {
@@ -267,7 +195,7 @@ function validateBlogRequest(req, res, next) {
 }
 
 function sanitizeBlogRequest(req, res, next) {
-    const requiredFields = ['title', 'author', 'publishDate', 'preview', 'tags'];
+    const requiredFields = ['title', 'publishDate', 'preview', 'tags'];
     for (let i = 0; i < requiredFields.length; i++) {
         const field = requiredFields[i];
         req.body[field] = xss(req.body[field]);

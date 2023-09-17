@@ -4,82 +4,65 @@ const mongoose = require('mongoose');
 // SCHEMA for the blog model.
 const articleSchema = mongoose.Schema({
 	title:          { type: String, required: true },
-    author:         { type: String, required: true },
-    preview:        { type: String, required: true},
-    content:        { type: String, required: true },
-    publishDate:    { type: Date,   required: true, default: Date.now },
-    editDate:       { type: Date,   required: false },
-    readTime:       { type: Number, default: 1},
-    tags:           { type: [String], required: false, set: tags => [...new Set(tags)] },
-    relativePath:   { type: String, required: true },
+  publishDate:    { type: Date,   required: true },
+  editDate:       { type: Date,   required: true },
+  preview:        { type: String, required: true},
+  content:        { type: String, required: true },
+  tags:           { type: [String], required: true, set: tags => [...new Set(tags)] },
+  readTime:       { type: Number, default: 1},
+  relativePath:   { type: String, required: true },
 });
 
 
 const articles = mongoose.model('Article', articleSchema);
 
 // CREATE 
-const addArticle = async (title, author, date, preview, content, tags = []) => {
+const addArticle = async (title, publishDate, editDate, preview, content, tags ) => {
     const wordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(wordCount / 200);
     if (readTime === 0) readTime = 1;
 
-    // Search through the db for the title, and if it exists, set the unique_id number to 1 + the number of instances that exist.
-
-    const titles = await articles.find({title: title});
-    const urlIdentifier = titles.length + 1;
     let url = title.replace(/\s+/g, '-').toLowerCase();
-    if (urlIdentifier > 1) {
-        url += `-${urlIdentifier}`;
-    }
     
     const article = new articles({ 
-        title: title, 
-        author: author, 
-        publishDate: date || Date.now(),
+        title: title,
+        publishDate: publishDate,
+        editDate: editDate,
         preview: preview,
         content: content,
-        readTime: readTime,
         tags: tags,
+        readTime: readTime,
         relativePath: url,
     });
     return article.save();
 }
 
 // UPDATE 
-const updateArticle = async (_id, title, author, publishDate, preview, content, tags=[]) => {
+const updateArticle = async (title, new_title, publishDate, editDate, preview, content, tags) => {
     const newWordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(newWordCount / 200);
     if (readTime === 0) readTime = 1;
 
-    const titles = await articles.find({title: title});
-    const urlIdentifier = titles.length + 1;
     let url = title.replace(/\s+/g, '-').toLowerCase();
-    if (urlIdentifier > 1) {
-        url += `-${urlIdentifier}`;
-    }
 
-    const timeNow = Date.now();
-    const result = await articles.replaceOne({_id: _id }, {
-        title: title,
-        author: author,
-        publishDate: publishDate || timeNow,
+    const result = await articles.replaceOne({title: title}, {
+        title: new_title,
+        publishDate: publishDate,
+        editDate: editDate,
         preview: preview,
         content: content,
-        readTime: readTime,
-        editDate: timeNow,
         tags: tags,
+        readTime: readTime,
         relativePath: url
     });
     return { 
-        _id: _id, 
         title: title,
-        author: author,
         publishDate: publishDate,
+        editDate: editDate,
         preview: preview,
         content: content,
-        readTime: readTime,
-        editDate: new Date(timeNow).toDateString(),
         tags: tags,
+        readTime: readTime,
         relativePath: url
     }
 }
@@ -136,6 +119,12 @@ const deleteArticleById = async (_id) => {
     return result.deletedCount;
 };
 
+// DELETE by title
+const deleteArticleTitle = async (title) => {
+    const result = await articles.deleteOne({title: title});
+    return result.deletedCount;
+};
+
 // DELETE ALL
 const deleteAllArticles = async () => {
     const result = await articles.deleteMany();
@@ -144,4 +133,4 @@ const deleteAllArticles = async () => {
 
 
 // EXPORT the variables for use in the controller file.
-module.exports = { addArticle, updateArticle, getArticles, getArticleById, getArticleByPath, getLatestArticle, getRandomArticle, deleteArticleById, deleteAllArticles}
+module.exports = { addArticle, updateArticle, getArticles, getArticleById, getArticleByPath, getLatestArticle, getRandomArticle, deleteArticleById, deleteArticleTitle, deleteAllArticles}
