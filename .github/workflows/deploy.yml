@@ -1,71 +1,71 @@
-name: Deploy to DigitalOcean
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  check_changes:
-    runs-on: ubuntu-latest
-    outputs:
-      deps_changed: ${{ steps.filter.outputs.deps_changed }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Get changed files
-        id: getfile
-        run: |
-          echo "modified=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_OUTPUT
-      - name: Check for changes in dependencies
-        id: filter
-        uses: dorny/paths-filter@v2
-        with:
-          filters: |
-            deps_changed:
-              - added|modified: 'package.json'
-              - diff: 'dependencies|devDependencies'
-
-  deploy:
-    needs: check_changes
-    if: needs.check_changes.outputs.deps_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to DigitalOcean and run npm install
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          port: ${{ secrets.PORT }}
-          key: ${{ secrets.KEY }}
-          script: |
-            bgweb
-            git stash
-            git pull origin main || (git stash && git pull origin main && git stash drop)
-            npm install
-            if pm2 describe app | grep -q 'status.*online'; then
-              pm2 restart app
-            else
-              pm2 start app
-            fi
-
-  deploy_without_npm_install:
-    needs: check_changes
-    if: needs.check_changes.outputs.deps_changed == 'false'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to DigitalOcean without running npm install
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          port: ${{ secrets.PORT }}
-          key: ${{ secrets.KEY }}
-          script: |
-            bgweb
-            git stash
-            git pull origin main || (git stash && git pull origin main && git stash drop)
-            if pm2 describe app | grep -q 'status.*online'; then
-              pm2 restart app
-            else
-              pm2 start app
-            fi
+# name: Deploy to DigitalOcean
+# on:
+#   push:
+#     branches:
+#       - main
+#
+# jobs:
+#   check_changes:
+#     runs-on: ubuntu-latest
+#     outputs:
+#       deps_changed: ${{ steps.filter.outputs.deps_changed }}
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+#       - name: Get changed files
+#         id: getfile
+#         run: |
+#           echo "modified=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_OUTPUT
+#       - name: Check for changes in dependencies
+#         id: filter
+#         uses: dorny/paths-filter@v2
+#         with:
+#           filters: |
+#             deps_changed:
+#               - added|modified: 'package.json'
+#               - diff: 'dependencies|devDependencies'
+#
+#   deploy:
+#     needs: check_changes
+#     if: needs.check_changes.outputs.deps_changed == 'true'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Deploy to DigitalOcean and run npm install
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.HOST }}
+#           username: ${{ secrets.USERNAME }}
+#           port: ${{ secrets.PORT }}
+#           key: ${{ secrets.KEY }}
+#           script: |
+#             bgweb
+#             git stash
+#             git pull origin main || (git stash && git pull origin main && git stash drop)
+#             npm install
+#             if pm2 describe app | grep -q 'status.*online'; then
+#               pm2 restart app
+#             else
+#               pm2 start app
+#             fi
+#
+#   deploy_without_npm_install:
+#     needs: check_changes
+#     if: needs.check_changes.outputs.deps_changed == 'false'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Deploy to DigitalOcean without running npm install
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.HOST }}
+#           username: ${{ secrets.USERNAME }}
+#           port: ${{ secrets.PORT }}
+#           key: ${{ secrets.KEY }}
+#           script: |
+#             bgweb
+#             git stash
+#             git pull origin main || (git stash && git pull origin main && git stash drop)
+#             if pm2 describe app | grep -q 'status.*online'; then
+#               pm2 restart app
+#             else
+#               pm2 start app
+#             fi
