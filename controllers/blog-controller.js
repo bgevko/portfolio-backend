@@ -17,15 +17,14 @@ const getTokenFrom = (request) => {
 
 // CREATE ARTICLE
 router.post ('/blog', sanitizeBlogRequest, validateBlogRequest, async(req,res) => {
-    
-    
     blog.addArticle(
         req.body.title, 
         req.body.publishDate,
         req.body.editDate,
         req.body.preview,
         req.body.content,
-        req.body.tags
+        req.body.tags,
+        req.body.relatedArticles
         )
         .then(article => {
             return res.status(201).json(article);
@@ -46,7 +45,8 @@ router.put('/blog/:encoded_title', sanitizeBlogRequest, validateBlogRequest, asy
         req.body.editDate,
         req.body.preview,
         req.body.content,
-        req.body.tags
+        req.body.tags,
+        req.body.relatedArticles
     )
     .then(article => {
         return res.status(200).json(article);
@@ -89,34 +89,30 @@ router.get('/blog/relative/:path', (req, res) => {
     });
 });
 
-// Get random
-router.get('/blog/random', (req, res) => {
-    const exclude = req.query.exclude;
-    if (exclude === undefined) {
-        return res.status(400).json({error: 'Exclude parameter is missing.' });
+// Get recommended
+router.get('/blog/recommended/:currentRelativePath', (req, res) => {
+  blog.getRecommendedArticles(req.params.currentRelativePath)
+  .then(articles => {
+    if (articles !== null) {
+      return res.status(200).json(articles);
+    } else {
+      return res.status(404).json({error: `No recommended articles found.` });
     }
-    blog.getRandomArticle(req.query.exclude)
-    .then(article => {
-        if (article !== null) {
-            return res.status(200).json(article);
-        } else {
-            return res.status(404).json({error: 'No blog posts found.' });
-        }
-    })
-    .catch(error => {
-        console.log(error);
-        return res.status(400).json({error: 'Cannot retrieve blog posts, something went wrong with the request.' });
-    });
-})
+  })
+  .catch(error => {
+    console.log(error);
+    return res.status(400).json({error: 'Could not find recommended articles, something went wrong with the request.' });
+  })
+});
 
 // Get by id
-router.get('/blog/:_id', (req, res) => {
-    blog.getArticleById(req.params._id)
+router.get('/blog/:title', (req, res) => {
+    blog.getArticleByTitle(req.params.title)
     .then(article => { 
         if (article !== null) {
             return res.status(200).json(article);
         } else {
-            return res.status(404).json({error: `Blog with id ${req.params._id} not found.` });
+            return res.status(404).json({error: `Blog with title ${req.params.title} not found.` });
         }         
      })
     .catch(error => {

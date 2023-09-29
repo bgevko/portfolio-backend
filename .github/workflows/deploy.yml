@@ -38,7 +38,7 @@ jobs:
           port: ${{ secrets.PORT }}
           key: ${{ secrets.KEY }}
           script: |
-            cd /home/nodejs/portfolio-backend
+            bgweb
             git stash
             git pull origin main || (git stash && git pull origin main && git stash drop)
             npm install
@@ -61,7 +61,7 @@ jobs:
           port: ${{ secrets.PORT }}
           key: ${{ secrets.KEY }}
           script: |
-            cd /home/nodejs/portfolio-backend
+            bgweb
             git stash
             git pull origin main || (git stash && git pull origin main && git stash drop)
             if pm2 describe app | grep -q 'status.*online'; then

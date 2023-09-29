@@ -11,13 +11,14 @@ const articleSchema = mongoose.Schema({
   tags:           { type: [String], required: true, set: tags => [...new Set(tags)] },
   readTime:       { type: Number, default: 1},
   relativePath:   { type: String, required: true },
+  relatedArticles:{ type: [String], required: true },
 });
 
 
 const articles = mongoose.model('Article', articleSchema);
 
 // CREATE 
-const addArticle = async (title, publishDate, editDate, preview, content, tags ) => {
+const addArticle = async (title, publishDate, editDate, preview, content, tags, relatedArticles ) => {
     const wordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(wordCount / 200);
     if (readTime === 0) readTime = 1;
@@ -33,12 +34,13 @@ const addArticle = async (title, publishDate, editDate, preview, content, tags )
         tags: tags,
         readTime: readTime,
         relativePath: url,
+        relatedArticles: relatedArticles
     });
     return article.save();
 }
 
 // UPDATE 
-const updateArticle = async (title, new_title, publishDate, editDate, preview, content, tags) => {
+const updateArticle = async (title, new_title, publishDate, editDate, preview, content, tags, relatedArticles) => {
     const newWordCount = content.split(/\s+/).length;
     let readTime = Math.ceil(newWordCount / 200);
     if (readTime === 0) readTime = 1;
@@ -53,7 +55,8 @@ const updateArticle = async (title, new_title, publishDate, editDate, preview, c
         content: content,
         tags: tags,
         readTime: readTime,
-        relativePath: url
+        relativePath: url,
+        relatedArticles: relatedArticles
     });
     return { 
         title: title,
@@ -63,7 +66,8 @@ const updateArticle = async (title, new_title, publishDate, editDate, preview, c
         content: content,
         tags: tags,
         readTime: readTime,
-        relativePath: url
+        relativePath: url,
+        relatedArticles: relatedArticles
     }
 }
 
@@ -76,10 +80,10 @@ const getArticles = async () => {
     return query.exec();
 }
 
-// Get by ID
-const getArticleById = async (_id) => {
-    const query = articles.findById({_id: _id});
-    return query.exec();
+// Get by title
+const getArticleByTitle = async (title) => {
+  query = articles.findOne({title: title});
+  return query.exec();
 }
 
 // Get by relative path
@@ -100,17 +104,18 @@ const getLatestArticle = async () => {
     return null;
 }
 
-// Get random
-const getRandomArticle = async (exclude) => {
-    const result = await articles.aggregate([
-        { $match: { _id: { $ne: exclude } } },
-        { $sample: { size: 1 } }
-    ])
+// Get recommended article
+const getRecommendedArticles = async (currentRelativePath) => {
+  const mainArticle = await articles.findOne({relativePath: currentRelativePath}).exec();
 
-    if (result.length > 0) {
-        return result[0];
-    }
-    return null;
+  if (!mainArticle) {
+    return [];
+  }
+
+  const relatedArticleTitles = mainArticle.relatedArticles;
+  const relatedArticleQueries = relatedArticleTitles.map(title => articles.findOne({ title }).exec());
+
+  return Promise.all(relatedArticleQueries);
 }
 
 // DELETE 
@@ -133,4 +138,4 @@ const deleteAllArticles = async () => {
 
 
 // EXPORT the variables for use in the controller file.
-module.exports = { addArticle, updateArticle, getArticles, getArticleById, getArticleByPath, getLatestArticle, getRandomArticle, deleteArticleById, deleteArticleTitle, deleteAllArticles}
+module.exports = { addArticle, updateArticle, getArticles, getArticleByTitle, getArticleByPath, getLatestArticle, getRecommendedArticles, deleteArticleById, deleteArticleTitle, deleteAllArticles}
